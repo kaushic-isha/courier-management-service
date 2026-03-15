@@ -9,6 +9,7 @@ const SELECTED_STORAGE_KEY = "outwardSelectedIds";
 const VENDORS = ["All Vendors", "DTDC", "Bluedart", "Indiapost", "Speedpost", "Professional", "Other"];
 const STATUS_LIST = ["All Status", "requested", "sent", "in-transit", "delivered", "cancelled"];
 const QUICK_RANGES = ["Today", "Yesterday", "Last 7 Days", "Last 30 Days", "All Time"];
+const ORIGIN_OPTIONS = ["Sadivayal Office", "Ashram"];
 
 const COLUMNS = [
   { key: "docket", label: "Docket #" },
@@ -366,6 +367,22 @@ export default function OutwardPage() {
           <option value="in-transit">in-transit</option>
           <option value="delivered">delivered</option>
           <option value="cancelled">cancelled</option>
+        </select>
+      );
+    }
+
+    if (col.key === "origin") {
+      return (
+        <select
+          className="cell-input"
+          value={draft[col.key] ?? ""}
+          onChange={(e) => changeDraft(row.id, col.key, e.target.value)}
+        >
+          {ORIGIN_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
         </select>
       );
     }

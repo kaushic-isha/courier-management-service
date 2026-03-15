@@ -641,7 +641,7 @@ export default function ReportsPage() {
               <thead>
                 <tr>
                   <th>Department</th>
-                  <th>Total</th>
+                  <th>Total (Inward + Outward)</th>
                   <th>Cost</th>
                 </tr>
               </thead>

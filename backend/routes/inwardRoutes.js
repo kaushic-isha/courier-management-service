@@ -39,7 +39,11 @@ async function getEditableFields() {
     const parsed = JSON.parse(row.value);
     if (!Array.isArray(parsed)) return defaultFields;
     const allowedSet = new Set(defaultFields);
-    return parsed.filter((field) => allowedSet.has(field));
+    const editableFields = parsed.filter((field) => allowedSet.has(field));
+    if (allowedSet.has("deliveredTo") && !editableFields.includes("deliveredTo")) {
+      editableFields.push("deliveredTo");
+    }
+    return editableFields;
   } catch (_error) {
     return defaultFields;
   }
@@ -75,6 +79,13 @@ function extractCollectorDetails(rowData) {
     ((rowData.collectedDate || rowData.collectedTime) ? rowData.receiverContact || "" : "");
 
   return { collectorName, collectorContact };
+}
+
+function hasCollectionDetails(data) {
+  return Boolean(
+    String(data?.collectedDate || "").trim() ||
+    String(data?.collectedTime || "").trim()
+  );
 }
 
 function toResponse(row) {
@@ -136,6 +147,10 @@ router.post("/", async (req, res) => {
       remarks: req.body.remarks || "",
       dateOfEntry: req.body.dateOfEntry || null
     };
+
+    if (hasCollectionDetails(payload)) {
+      payload.status = "handed-over";
+    }
 
     if (
       !payload.docket ||
@@ -203,6 +218,10 @@ router.patch("/:id", async (req, res) => {
       }
     }
 
+    if (hasCollectionDetails(row)) {
+      row.status = "handed-over";
+    }
+
     if (req.auth?.role === "Courier Office Staff" && req.auth.location && row.deliveredTo !== req.auth.location) {
       return res.status(403).json({ message: "You can only update inward couriers for your assigned location." });
     }
@@ -237,6 +256,7 @@ router.post("/bulk/collection", async (req, res) => {
       if (collectedTime) row.collectedTime = collectedTime;
       if (remarks !== undefined && remarks !== null && remarks !== "") row.remarks = remarks;
       else if (collectedBy) row.remarks = `Collected by: ${collectedBy}`;
+      if (hasCollectionDetails(row)) row.status = "handed-over";
       await row.save();
     }
 

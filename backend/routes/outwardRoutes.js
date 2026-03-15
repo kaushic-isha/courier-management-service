@@ -431,6 +431,9 @@ router.patch("/:id", async (req, res) => {
     if (Object.prototype.hasOwnProperty.call(req.body, "status") && !validStatuses.includes(req.body.status)) {
       return res.status(400).json({ message: "Invalid status value." });
     }
+    if (Object.prototype.hasOwnProperty.call(req.body, "origin") && !ORIGIN_OPTIONS.includes(req.body.origin)) {
+      return res.status(400).json({ message: "Invalid origin selected." });
+    }
 
     const editableFields = await getEditableFields();
     for (const key of editableFields) {

@@ -9,6 +9,7 @@ const SELECTED_STORAGE_KEY = "inwardSelectedIds";
 const VENDORS = ["All Vendors", "DTDC", "Bluedart", "Indiapost", "Speedpost", "Professional", "Other"];
 const STATUS_LIST = ["All Status", "received", "handed-over", "discarded"];
 const QUICK_RANGES = ["Today", "Yesterday", "Last 7 Days", "Last 30 Days", "All Time"];
+const DELIVERED_TO_OPTIONS = ["Sadivayal Office", "Ashram"];
 
 const COLUMNS = [
   { key: "docket", label: "Docket #" },
@@ -352,6 +353,22 @@ export default function InwardPage() {
           <option value="received">received</option>
           <option value="handed-over">handed-over</option>
           <option value="discarded">discarded</option>
+        </select>
+      );
+    }
+
+    if (col.key === "deliveredTo") {
+      return (
+        <select
+          className="cell-input"
+          value={draft[col.key] ?? ""}
+          onChange={(e) => changeDraft(row.id, col.key, e.target.value)}
+        >
+          {DELIVERED_TO_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
         </select>
       );
     }
