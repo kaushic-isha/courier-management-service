@@ -19,6 +19,10 @@ function outwardMetricDate(row) {
   return row.dispatchDate || row.dateOfEntry || "";
 }
 
+function inwardMetricDate(row) {
+  return row.receivedDate || row.dateOfEntry || "";
+}
+
 export default function DepartmentMainPage() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("loggedInUser") || "null");
@@ -72,7 +76,7 @@ export default function DepartmentMainPage() {
 
   const metrics = useMemo(() => {
     const today = todayIso();
-    const todayInward = inwardRows.filter((row) => row.dateOfEntry === today).length;
+    const todayInward = inwardRows.filter((row) => inwardMetricDate(row) === today).length;
     const todayOutward = outwardRows.filter((row) => outwardMetricDate(row) === today).length;
     const pending = outwardRows.filter((row) => ["requested", "sent", "in-transit"].includes(row.status)).length;
     const total = inwardRows.length + outwardRows.length;
