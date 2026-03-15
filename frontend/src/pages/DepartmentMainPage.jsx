@@ -15,6 +15,10 @@ function todayIso() {
   return `${year}-${month}-${day}`;
 }
 
+function outwardMetricDate(row) {
+  return row.dispatchDate || row.dateOfEntry || "";
+}
+
 export default function DepartmentMainPage() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("loggedInUser") || "null");
@@ -47,13 +51,29 @@ export default function DepartmentMainPage() {
         setLoading(false);
       }
     }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        fetchData();
+      }
+    }
+
     fetchData();
+    const intervalId = window.setInterval(fetchData, 30000);
+    window.addEventListener("focus", fetchData);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", fetchData);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   const metrics = useMemo(() => {
     const today = todayIso();
     const todayInward = inwardRows.filter((row) => row.dateOfEntry === today).length;
-    const todayOutward = outwardRows.filter((row) => row.dateOfEntry === today).length;
+    const todayOutward = outwardRows.filter((row) => outwardMetricDate(row) === today).length;
     const pending = outwardRows.filter((row) => ["requested", "sent", "in-transit"].includes(row.status)).length;
     const total = inwardRows.length + outwardRows.length;
     const received = inwardRows.filter((row) => row.status === "received").length;
