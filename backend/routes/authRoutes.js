@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import { signJwt } from "../middleware/verifyJwt.js";
 import {
+  findScopeApprover,
   getConfiguredDepartments,
   getConfiguredDepartmentsByLocation,
   getConfiguredRoles,
@@ -61,14 +62,25 @@ router.post("/register", async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const existingApprover = await findScopeApprover(role, finalDepartment, location || null);
+    const isFirstScopeUser = !existingApprover;
     const user = await User.create({
       email: normalizedEmail,
       passwordHash,
-      location: ["Department User", "Courier Office Staff"].includes(role) ? location : null
+      location: ["Department User", "Courier Office Staff"].includes(role) ? location : null,
+      isActive: isFirstScopeUser,
+      approvalStatus: isFirstScopeUser ? "approved" : "pending",
+      canApproveUsers: isFirstScopeUser
     });
     await setUserAccessMapping(user.id, role, finalDepartment, user.location);
 
-    return res.status(201).json({ message: "User registered successfully." });
+    return res.status(201).json({
+      message: isFirstScopeUser
+        ? "User registered successfully. You are the approver for this role and location."
+        : "Registration submitted. Wait for approval from the first approved user in this role and location.",
+      approvalStatus: isFirstScopeUser ? "approved" : "pending",
+      canApproveUsers: isFirstScopeUser
+    });
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
       return res.status(409).json({ message: "User already exists." });
@@ -106,13 +118,27 @@ router.post("/login", async (req, res) => {
 
     const user = await User.findOne({
       where: { email: normalizedEmail },
-      attributes: ["id", "email", "passwordHash", "isActive", "location"]
+      attributes: [
+        "id",
+        "email",
+        "passwordHash",
+        "isActive",
+        "location",
+        "approvalStatus",
+        "canApproveUsers"
+      ]
     });
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials." });
     }
 
     if (!user.isActive) {
+      if (user.approvalStatus === "pending") {
+        return res.status(403).json({ message: "Your registration is pending approval." });
+      }
+      if (user.approvalStatus === "rejected") {
+        return res.status(403).json({ message: "Your registration was rejected." });
+      }
       return res.status(403).json({ message: "Your account is temporarily disabled. Contact admin." });
     }
 
@@ -150,7 +176,9 @@ router.post("/login", async (req, res) => {
         role: access.role,
         department: access.department,
         location: role === "Admin" ? null : user.location || null,
-        roleId: access.roleId || null
+        roleId: access.roleId || null,
+        canApproveUsers: Boolean(user.canApproveUsers),
+        approvalStatus: user.approvalStatus || "approved"
       }),
       user: {
         id: user.id,
@@ -158,7 +186,9 @@ router.post("/login", async (req, res) => {
         role: access.role,
         department: access.department,
         location: role === "Admin" ? null : user.location || null,
-        roleId: access.roleId || null
+        roleId: access.roleId || null,
+        canApproveUsers: Boolean(user.canApproveUsers),
+        approvalStatus: user.approvalStatus || "approved"
       }
     });
   } catch (error) {

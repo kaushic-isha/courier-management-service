@@ -17,6 +17,7 @@ import AddOutwardCourierPage from "./pages/AddOutwardCourier";
 import OutwardDetailsPage from "./pages/OutwardDetails";
 import ReportsPage from "./pages/Reports";
 import UsersPage from "./pages/Users";
+import UserApprovalsPage from "./pages/UserApprovals";
 import AdminSettingsPage from "./pages/AdminSettings";
 import AdminDepartmentsPage from "./pages/AdminDepartments";
 
@@ -70,6 +71,10 @@ export default function App() {
       <Route
         path="/main/admin/users"
         element={<UsersPage />}
+      />
+      <Route
+        path="/main/admin/approvals"
+        element={<UserApprovalsPage />}
       />
       <Route path="/main/staff" element={<StaffRedirect />} />
       <Route path="/main/staff/inward/:id" element={<InwardDetailsPage />} />

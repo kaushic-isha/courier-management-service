@@ -59,6 +59,8 @@ async function startServer() {
     await sequelize.sync();
     await ensureUserIsActiveColumn();
     await ensureUserLocationColumn();
+    await ensureUserApprovalStatusColumn();
+    await ensureUserCanApproveUsersColumn();
     await ensureLegacyUserRoleDepartmentColumnsNullable();
     await ensureOutwardStatusEnum();
     await ensureOutwardOriginColumn();
@@ -101,6 +103,26 @@ async function ensureUserLocationColumn() {
     await queryInterface.addColumn("users", "location", {
       type: DataTypes.STRING,
       allowNull: true
+    });
+  }
+}
+
+async function ensureUserApprovalStatusColumn() {
+  if (!(await hasColumn("users", "approval_status"))) {
+    await queryInterface.addColumn("users", "approval_status", {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "approved"
+    });
+  }
+}
+
+async function ensureUserCanApproveUsersColumn() {
+  if (!(await hasColumn("users", "can_approve_users"))) {
+    await queryInterface.addColumn("users", "can_approve_users", {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
     });
   }
 }

@@ -44,6 +44,9 @@ export default function AdminHeader({ activePath = "/main/admin", user, onLogout
     return activePath.startsWith(path);
   }
 
+  const showApprovalsLink = user?.role === "Admin" || Boolean(user?.canApproveUsers);
+  const approvalsPath = "/main/admin/approvals";
+
   return (
     <header className="admin-header">
       <div className="brand-wrap">
@@ -61,6 +64,14 @@ export default function AdminHeader({ activePath = "/main/admin", user, onLogout
             {item.label}
           </Link>
         ))}
+        {showApprovalsLink && (
+          <Link
+            to={approvalsPath}
+            className={`nav-link ${isItemActive(approvalsPath) ? "active" : ""}`}
+          >
+            Approvals
+          </Link>
+        )}
       </nav>
 
       <div className="admin-right">

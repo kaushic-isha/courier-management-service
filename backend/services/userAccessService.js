@@ -137,9 +137,95 @@ export async function getUserAccessByUserId(userId) {
   };
 }
 
+export function buildApprovalScope(role, department = null, location = null) {
+  return {
+    role: role || null,
+    department: role === "Department User" ? department || null : null,
+    location: role === "Admin" ? null : location || null
+  };
+}
+
+export function isSameApprovalScope(left, right) {
+  return (
+    left?.role === right?.role &&
+    (left?.department || null) === (right?.department || null) &&
+    (left?.location || null) === (right?.location || null)
+  );
+}
+
+export async function getApprovalScopeByUserId(userId) {
+  const [user, access] = await Promise.all([
+    User.findByPk(userId, { attributes: ["id", "location"] }),
+    getUserAccessByUserId(userId)
+  ]);
+
+  if (!user || !access?.role) return null;
+  return buildApprovalScope(access.role, access.department, user.location || null);
+}
+
+export async function findScopeApprover(role, department = null, location = null) {
+  const users = await listUsersWithAccess();
+  const scope = buildApprovalScope(role, department, location);
+
+  // If an approver already exists in this scope, return them.
+  const existingApprover = users.find((user) => {
+    if (!user.canApproveUsers || user.approvalStatus !== "approved") return false;
+    return isSameApprovalScope(scope, buildApprovalScope(user.role, user.department, user.location));
+  });
+  if (existingApprover) return existingApprover;
+
+  // If no approver exists, but there are approved users in this scope,
+  // promote the earliest created approved user into the approver role.
+  const approvedUsersInScope = users
+    .filter((user) => user.approvalStatus === "approved")
+    .filter((user) => isSameApprovalScope(scope, buildApprovalScope(user.role, user.department, user.location)));
+
+  if (!approvedUsersInScope.length) return null;
+
+  const [firstApproved] = approvedUsersInScope.sort(
+    (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+  );
+
+  // Persist the approver flag for future registrations.
+  await User.update({ canApproveUsers: true }, { where: { id: firstApproved.id } });
+  firstApproved.canApproveUsers = true;
+  return firstApproved;
+}
+
+export async function isApproverForUser(approverUserId, targetUserId) {
+  const [approverScope, targetScope] = await Promise.all([
+    getApprovalScopeByUserId(approverUserId),
+    getApprovalScopeByUserId(targetUserId)
+  ]);
+  if (!approverScope || !targetScope) return false;
+  const approver = await User.findByPk(approverUserId, { attributes: ["canApproveUsers", "approvalStatus"] });
+  if (!approver?.canApproveUsers || approver.approvalStatus !== "approved") return false;
+  return isSameApprovalScope(approverScope, targetScope);
+}
+
+export async function listPendingUsersForApprover(approverUserId) {
+  const approverScope = await getApprovalScopeByUserId(approverUserId);
+  if (!approverScope) return [];
+  const allUsers = await listUsersWithAccess();
+  return allUsers.filter((user) => {
+    if (user.approvalStatus !== "pending") return false;
+    const targetScope = buildApprovalScope(user.role, user.department, user.location);
+    return isSameApprovalScope(approverScope, targetScope);
+  });
+}
+
 export async function listUsersWithAccess() {
   const users = await User.findAll({
-    attributes: ["id", "email", "location", "isActive", "createdAt", "updatedAt"],
+    attributes: [
+      "id",
+      "email",
+      "location",
+      "isActive",
+      "approvalStatus",
+      "canApproveUsers",
+      "createdAt",
+      "updatedAt"
+    ],
     order: [["id", "ASC"]]
   });
 
@@ -168,6 +254,8 @@ export async function listUsersWithAccess() {
       department: mapping ? departmentMap.get(mapping.departmentId) || null : null,
       location: user.location || null,
       isActive: user.isActive,
+      approvalStatus: user.approvalStatus || "approved",
+      canApproveUsers: Boolean(user.canApproveUsers),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     };

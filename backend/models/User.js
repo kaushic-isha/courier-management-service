@@ -42,6 +42,18 @@ const User = sequelize.define(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true
+    },
+    approvalStatus: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "approved",
+      field: "approval_status"
+    },
+    canApproveUsers: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "can_approve_users"
     }
   },
   {
