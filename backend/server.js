@@ -1,6 +1,9 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import express from "express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { DataTypes } from "sequelize";
 import sequelize from "./config/database.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -25,10 +28,33 @@ dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
 
-app.use(cors());
-app.use(express.json());
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:5174";
 
-app.use("/api/auth", authRoutes);
+// Security middleware
+app.use(helmet());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow non-browser requests (e.g. mobile apps, tests) when origin is undefined.
+      if (!origin) return callback(null, true);
+      if (origin === CLIENT_ORIGIN) return callback(null, true);
+      return callback(new Error("CORS policy: This origin is not allowed."));
+    },
+    credentials: true
+  })
+);
+
+app.use(express.json({ limit: "10kb" }));
+
+const authRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  message: { message: "Too many requests. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+app.use("/api/auth", authRateLimiter, authRoutes);
 app.use("/api/inward", verifyJwt, inwardRoutes);
 app.use("/api/outward", verifyJwt, outwardRoutes);
 app.use("/api/users", verifyJwt, userRoutes);

@@ -29,11 +29,20 @@ router.post("/register", async (req, res) => {
   try {
     const { role, department, location, email, password } = req.body;
     const normalizedEmail = String(email || "").trim().toLowerCase();
+    const passwordStr = String(password || "");
     const ROLES = await getConfiguredRoles();
     const DEPARTMENTS = await getConfiguredDepartments(location || null);
 
-    if (!role || !normalizedEmail || !password) {
+    if (!role || !normalizedEmail || !passwordStr) {
       return res.status(400).json({ message: "Role, email, and password are required." });
+    }
+
+    if (!/^[\w.+\-]+@[\w\-]+\.[A-Za-z]{2,}$/.test(normalizedEmail)) {
+      return res.status(400).json({ message: "Invalid email address." });
+    }
+
+    if (passwordStr.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters." });
     }
 
     if (!ROLES.includes(role)) {
@@ -61,7 +70,7 @@ router.post("/register", async (req, res) => {
       return res.status(409).json({ message: "User already exists." });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(passwordStr, 10);
     const existingApprover = await findScopeApprover(role, finalDepartment, location || null);
     const isFirstScopeUser = !existingApprover;
     const user = await User.create({
@@ -94,11 +103,20 @@ router.post("/login", async (req, res) => {
   try {
     const { role, department, location, email, password } = req.body;
     const normalizedEmail = String(email || "").trim().toLowerCase();
+    const passwordStr = String(password || "");
     const ROLES = await getConfiguredRoles();
     const DEPARTMENTS = await getConfiguredDepartments(location || null);
 
-    if (!role || !normalizedEmail || !password) {
+    if (!role || !normalizedEmail || !passwordStr) {
       return res.status(400).json({ message: "Role, email, and password are required." });
+    }
+
+    if (!/^[\w.+\-]+@[\w\-]+\.[A-Za-z]{2,}$/.test(normalizedEmail)) {
+      return res.status(400).json({ message: "Invalid email address." });
+    }
+
+    if (passwordStr.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters." });
     }
 
     if (!ROLES.includes(role)) {
