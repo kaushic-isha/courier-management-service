@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { DataTypes } from "sequelize";
@@ -28,7 +27,16 @@ dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
 
-const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:5174";
+// In development, the frontend may run on either port 5173 (Vite default) or 5174.
+const CLIENT_ORIGINS = [
+  process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:5174",
+  "http://127.0.0.1:5174"
+];
+
+const isDev = process.env.NODE_ENV !== "production";
 
 // Security middleware
 app.use(helmet());
@@ -37,7 +45,8 @@ app.use(
     origin: (origin, callback) => {
       // Allow non-browser requests (e.g. mobile apps, tests) when origin is undefined.
       if (!origin) return callback(null, true);
-      if (origin === CLIENT_ORIGIN) return callback(null, true);
+      if (isDev) return callback(null, true);
+      if (CLIENT_ORIGINS.includes(origin)) return callback(null, true);
       return callback(new Error("CORS policy: This origin is not allowed."));
     },
     credentials: true
