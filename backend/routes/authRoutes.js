@@ -41,10 +41,6 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "Invalid email address." });
     }
 
-    if (passwordStr.length < 8) {
-      return res.status(400).json({ message: "Password must be at least 8 characters." });
-    }
-
     if (!ROLES.includes(role)) {
       return res.status(400).json({ message: "Invalid role selected." });
     }
@@ -113,10 +109,6 @@ router.post("/login", async (req, res) => {
 
     if (!/^[\w.+\-]+@[\w\-]+\.[A-Za-z]{2,}$/.test(normalizedEmail)) {
       return res.status(400).json({ message: "Invalid email address." });
-    }
-
-    if (passwordStr.length < 8) {
-      return res.status(400).json({ message: "Password must be at least 8 characters." });
     }
 
     if (!ROLES.includes(role)) {

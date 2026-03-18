@@ -213,7 +213,6 @@ export default function RegisterPage() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter your password"
             required
-            minLength={6}
           />
         </div>
 
