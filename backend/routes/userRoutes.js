@@ -86,13 +86,16 @@ router.post("/:id/approval", async (req, res) => {
 
     targetUser.isActive = approve;
     targetUser.approvalStatus = approve ? "approved" : "rejected";
+    // Grant approval privileges to any user who gets approved.
+    targetUser.canApproveUsers = approve;
     await targetUser.save();
 
     return res.json({
       id: targetUser.id,
       email: targetUser.email,
       isActive: targetUser.isActive,
-      approvalStatus: targetUser.approvalStatus
+      approvalStatus: targetUser.approvalStatus,
+      canApproveUsers: Boolean(targetUser.canApproveUsers)
     });
   } catch (error) {
     return res.status(500).json({ message: "Failed to update approval status.", error: error.message });
